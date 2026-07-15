@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Greifer SHAPr22 Phone Task v1</title>
+<style>
+body{margin:0;overflow:hidden;font-family:system-ui,sans-serif;background:#eef8ee}
+#info{position:fixed;top:12px;left:50%;transform:translateX(-50%);background:#ffffffdd;padding:8px 14px;border-radius:12px;font-size:14px;text-align:center;max-width:84vw;z-index:5}
+#hud{position:fixed;top:12px;left:12px;background:#ffffffdd;border-radius:12px;padding:9px 10px;font-size:14px;line-height:1.45;z-index:5;min-width:126px;box-shadow:0 3px 12px #0001}
+#modeBox{position:fixed;top:142px;left:12px;background:#ffffffdd;border-radius:12px;padding:7px 8px;z-index:5;font-size:12px;width:80px;box-shadow:0 3px 12px #0001}
+#modeBox .title{font-weight:700;text-align:center;margin:6px 0 4px}
+#modeBox button{display:block;width:100%;margin:4px 0;padding:6px 2px;border-radius:8px;border:1px solid #777;background:#f7f7f7;font-size:12px}
+#modeBox button.on{background:#dff3ff;border-color:#178ad6;font-weight:700}
+#resetBtn{background:#fff7f7!important;border-color:#b77!important;font-weight:700}
+#setBtn{background:#eaffea!important;border-color:#3b8b3b!important;font-weight:700}
+#calibBox{display:none;border-top:1px solid #ddd;margin-top:5px;padding-top:5px}
+#calibBox button.on{background:#ffe7b7!important;border-color:#c77700!important}
+#controlBar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:9}
+#controlBar button{height:31px;border-radius:8px;border:1px solid #777;background:#f5f5f5;font-size:12px;font-weight:700;padding:4px 11px;white-space:nowrap}
+#startTaskBtn,#timerTaskBtn{background:#fff7df!important}
+#timerTaskBtn.running{background:#ffe7e7!important;border-color:#b77!important}
+#panel{position:fixed;top:68px;right:14px;width:360px;max-height:82vh;overflow:auto;background:#ffffffee;border:1px solid #bbb;border-radius:12px;padding:12px;font-size:13px;box-shadow:0 6px 18px #0002;z-index:8}
+#panel h3{margin:0 0 8px;font-size:15px}#panel h4{margin:12px 0 4px;font-size:13px;border-top:1px solid #ddd;padding-top:8px}
+#panel label{display:grid;grid-template-columns:94px 1fr 58px;gap:8px;align-items:center;margin:7px 0}
+#panel input[type=range]{width:100%}.rangeWrap{position:relative;display:block;width:100%}.initialDot{position:absolute;top:50%;width:8px;height:8px;border-radius:50%;background:#e60000;transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 0 0 1px #fff}
+#panel button{margin:4px 3px 0 0;padding:6px 8px;border-radius:8px;border:1px solid #777;background:#f7f7f7}
+#panel.collapsed{top:76px;right:12px;width:44px;height:44px;max-height:44px;overflow:hidden;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center}
+#panel.collapsed h3,#panel.collapsed #panelBody{display:none}#panel.collapsed #panelToggle{display:block;width:44px;height:44px;border:0;border-radius:50%;margin:0;padding:0;background:#fff;font-weight:700}
+#coords{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#f3f3f3;border-radius:8px;padding:6px;margin-top:8px;white-space:pre-wrap;font-size:11px}
+#modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#0006;z-index:30;padding:18px}
+#card{width:min(92vw,600px);background:#fff;border-radius:16px;padding:20px;box-shadow:0 12px 36px #0005;text-align:center}
+#message{font-size:17px;line-height:1.65;white-space:pre-line}#actions{margin-top:16px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap}#actions button{border:1px solid #555;background:#f7f7f7;border-radius:10px;padding:9px 14px;font-weight:700}
+#wristGame{display:none;margin-top:14px}.meter{height:18px;background:#ddd;border-radius:9px;overflow:hidden;position:relative}.fill{height:100%;width:0%;background:#2c8}.zone{position:absolute;left:42%;width:20%;top:0;bottom:0;border:2px solid #d60;box-sizing:border-box}.hint{font-size:13px;margin-top:8px;color:#555}
+#end{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:#ffffffcc;z-index:25;font-weight:800}.big{font-size:82px}.mid{font-size:40px;margin-top:8px}#end button{margin-top:18px;font-size:18px;padding:9px 16px;border-radius:10px}
+#warn{position:fixed;left:12px;bottom:12px;background:#fff3cd;border:1px solid #fc6;padding:8px 10px;border-radius:8px;font-size:12px;display:none;z-index:12}
+@media(max-width:760px){#info{top:8px;font-size:12px;max-width:72vw}#hud{top:58px;left:8px;font-size:12px}#modeBox{top:176px;left:8px;width:62px}#panel{top:54px;right:8px;width:min(92vw,360px)}#panel.collapsed{top:58px;right:8px}#controlBar{bottom:13px}}
+</style>
+<script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.10.0/dist/es-module-shims.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div id="info">SHAPr22 Phone v1：0SET → STARTでボタン前へ → 「ボタン」で計測開始 → ケータイ把持 → 表裏を整える → 対側手で1〜6を順にタップ → 耳位置へ → 元へ戻す → 「ボタン」で終了。</div>
+<div id="hud">TIME: <span id="time">0.0</span><br>PHASE: <span id="phase">READY</span><br>面: <span id="faceName">表</span><br>義手: <span id="armName">前腕</span><br>手首: <span id="wristName">固定</span><br><span id="setStatus" style="color:#999">SET OFF</span></div>
+<div id="modeBox">
+<div class="title">Phone</div><button id="faceFront" class="on">表</button><button id="faceBack">裏</button>
+<div class="title">義手</div><button id="armForearm" class="on">前腕</button><button id="armUpper">上腕</button><button id="armShoulder">肩</button>
+<div class="title">手首</div><button id="wristFixed" class="on">固定</button><button id="wristElectric">電動</button>
+<button id="resetBtn">RESET</button><button id="setBtn">SET</button>
+<div id="calibBox"><button data-cal="ZERO">0SET</button><button data-cal="TIMER">TIMER</button><button data-cal="PHONE">PHONE</button><button data-cal="HOLD">HOLD</button><button data-cal="TAP">TAP</button><button data-cal="EAR">EAR</button><button data-cal="PLACE">PLACE</button></div>
+</div>
+<div id="controlBar"><button id="lBtn">L</button><button id="startTaskBtn">START</button><button id="timerTaskBtn">ボタン</button></div>
+<div id="panel" class="collapsed"><h3>SHAPr22 調整パネル</h3><button id="panelToggle">調</button><div id="panelBody">
+<h4>ケータイ</h4>
+<label>幅<input id="phoneW" type="range" min="0.18" max="0.48" step="0.005"><span id="phoneWv"></span></label>
+<label>高さ<input id="phoneH" type="range" min="0.28" max="0.72" step="0.005"><span id="phoneHv"></span></label>
+<label>厚み<input id="phoneT" type="range" min="0.01" max="0.08" step="0.002"><span id="phoneTv"></span></label>
+<label>物体X<input id="phoneX" type="range" min="-0.7" max="0.7" step="0.005"><span id="phoneXv"></span></label>
+<label>物体Y<input id="phoneY" type="range" min="-0.1" max="0.5" step="0.005"><span id="phoneYv"></span></label>
+<label>物体Z<input id="phoneZ" type="range" min="-0.7" max="0.7" step="0.005"><span id="phoneZv"></span></label>
+<h4>把持</h4>
+<label>G-X<input id="gx" type="range" min="-1.5" max="1.5" step="0.01"><span id="gxv"></span></label>
+<label>G-Y<input id="gy" type="range" min="-1.5" max="1.5" step="0.01"><span id="gyv"></span></label>
+<label>G-Z<input id="gz" type="range" min="-1.5" max="1.5" step="0.01"><span id="gzv"></span></label>
+<label>相対X<input id="gripX" type="range" min="-0.5" max="0.5" step="0.005"><span id="gripXv"></span></label>
+<label>相対Z<input id="gripZ" type="range" min="-0.5" max="0.5" step="0.005"><span id="gripZv"></span></label>
+<label>回転X<input id="rx" type="range" min="-3.14" max="3.14" step="0.01"><span id="rxv"></span></label>
+<label>回転Y<input id="ry" type="range" min="-3.14" max="3.14" step="0.01"><span id="ryv"></span></label>
+<label>回転Z<input id="rz" type="range" min="-3.14" max="3.14" step="0.01"><span id="rzv"></span></label>
+<label>開き角<input id="openA" type="range" min="-0.2" max="1.0" step="0.01"><span id="openAv"></span></label>
+<label>閉じ角<input id="closedA" type="range" min="-0.3" max="0.8" step="0.01"><span id="closedAv"></span></label>
+<h4>位置</h4>
+<label>0SET-X<input id="zeroX" type="range" min="-2" max="2" step="0.01"><span id="zeroXv"></span></label>
+<label>0SET-Y<input id="zeroY" type="range" min="-1" max="2" step="0.01"><span id="zeroYv"></span></label>
+<label>0SET-Z<input id="zeroZ" type="range" min="-2" max="2" step="0.01"><span id="zeroZv"></span></label>
+<label>耳X<input id="earX" type="range" min="-1.2" max="1.2" step="0.01"><span id="earXv"></span></label>
+<label>耳Y<input id="earY" type="range" min="0" max="1.8" step="0.01"><span id="earYv"></span></label>
+<label>耳Z<input id="earZ" type="range" min="-1.2" max="1.2" step="0.01"><span id="earZv"></span></label>
+<h4>電動リスト</h4>
+<label>適正開始ms<input id="holdMin" type="range" min="500" max="2500" step="50"><span id="holdMinv"></span></label>
+<label>適正終了ms<input id="holdMax" type="range" min="800" max="3500" step="50"><span id="holdMaxv"></span></label>
+<label>誤作動率<input id="malProb" type="range" min="0" max="1" step="0.01"><span id="malProbv"></span></label>
+<h4>画面被覆確率</h4>
+<label>右1個<input id="coverRight" type="range" min="0" max="1" step="0.01"><span id="coverRightv"></span></label>
+<label>左右2個<input id="coverTwo" type="range" min="0" max="1" step="0.01"><span id="coverTwov"></span></label>
+<label>再把持<input id="regraspProb" type="range" min="0" max="1" step="0.01"><span id="regraspProbv"></span></label>
+<button id="saveAll">保存</button><button id="resetAll">初期値</button><button id="copyAll">設定コピー</button><div id="coords"></div>
+</div></div>
+<div id="warn"></div>
+<div id="modal"><div id="card"><div id="message"></div><div id="wristGame"><div class="meter"><div class="fill" id="meterFill"></div><div class="zone"></div></div><div class="hint">Lを強く長く押し、適正範囲で離してください。</div></div><div id="actions"></div></div></div>
+<div id="end"><div class="big" id="finalTime">0.0s</div><div class="mid">END</div><button id="restartBtn">もう一度</button></div>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+const STORAGE_KEY='greifer_shapr22_phone_v1_config';
+const FLOOR_Y=-0.35;
+const DEFAULT_CONFIG={
+ phoneWidth:0.30,phoneHeight:0.52,phoneThickness:0.035,
+ phonePosition:[0.34,0.02,-0.10],
+ graspLocal:[0.38,0.37,-0.10],phoneGripOffset:[0.13,0.06],
+ gripperRot:[-0.48,1.28,-0.28],openAngle:0.44,closedAngle:0.05,
+ zeroSetBase:[0.94,-0.28,0.63],zeroSetRot:[0,0,0],
+ timerButton:[-0.36,0.08],earPosition:[0.52,0.62,0.02],liftHeight:0.18,transitClearance:0.05,
+ electricWrist:{holdMinMs:1200,holdMaxMs:1550,malfunctionProbability:0.25},
+ screenCover:{coverRightProbability:0.333,coverTwoProbability:0.111,regraspProbability:0.333}
+};
+const clone=o=>JSON.parse(JSON.stringify(o));
+function deepMerge(a,b){for(const k in b){if(b[k]&&typeof b[k]==='object'&&!Array.isArray(b[k]))a[k]=deepMerge(a[k]||{},b[k]);else a[k]=b[k]}return a}
+function loadConfig(){try{return deepMerge(clone(DEFAULT_CONFIG),JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}'))}catch{return clone(DEFAULT_CONFIG)}}
+let config=loadConfig(),face='front',arm='forearm',wrist='fixed';
+let state='ready',moving=false,timerRunning=false,startTime=0,angle=config.openAngle,targetAngle=config.openAngle,phoneAttached=false,calibration=false,calState='ZERO';
+let currentTap=1,covered=new Set(),regraspCount=0,wristHoldStart=0,wristGameActive=false;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0xeef8ee);
+const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.01,100);camera.position.set(0,1.15,3);
+const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(devicePixelRatio);document.body.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.18,0);controls.enableDamping=true;
+scene.add(new THREE.AmbientLight(0xffffff,1.8));const dl=new THREE.DirectionalLight(0xffffff,2.5);dl.position.set(3,5,4);scene.add(dl);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(7,5),new THREE.MeshStandardMaterial({color:0xf2f2f2}));ground.rotation.x=-Math.PI/2;ground.position.y=FLOOR_Y;scene.add(ground);
+const root=new THREE.Group(),contraRoot=new THREE.Group(),jawPivot=new THREE.Group(),contraJawPivot=new THREE.Group();scene.add(root,contraRoot);root.add(jawPivot);contraRoot.add(contraJawPivot);
+let normalized=false,phone=null,board=null,timerButtonMesh=null,screenCanvas=null,screenTexture=null;
+const loader=new GLTFLoader();
+const $=id=>document.getElementById(id);
+function setPhase(x){$('phase').textContent=x}function showWarn(x){$('warn').textContent=x;$('warn').style.display='block';setTimeout(()=>$('warn').style.display='none',2500)}
+function modeUI(){$('faceName').textContent=face==='front'?'表':'裏';$('armName').textContent=arm==='forearm'?'前腕':arm==='upper'?'上腕':'肩';$('wristName').textContent=wrist==='fixed'?'固定':'電動';['front','back'].forEach(x=>$('face'+(x==='front'?'Front':'Back')).classList.toggle('on',face===x));['forearm','upper','shoulder'].forEach(x=>$('arm'+(x==='forearm'?'Forearm':x==='upper'?'Upper':'Shoulder')).classList.toggle('on',arm===x));$('wristFixed').classList.toggle('on',wrist==='fixed');$('wristElectric').classList.toggle('on',wrist==='electric')}
+function makeBoard(){if(board)scene.remove(board);board=new THREE.Group();scene.add(board);const blue=new THREE.MeshStandardMaterial({color:0x1f86d1,roughness:.45}),dark=new THREE.MeshStandardMaterial({color:0x444});const base=new THREE.Mesh(new THREE.BoxGeometry(1.45,.06,.9),blue);base.position.set(0,FLOOR_Y+.03,-.15);board.add(base);const timerBase=new THREE.Mesh(new THREE.BoxGeometry(.26,.045,.18),dark);timerBase.position.set(config.timerButton[0],FLOOR_Y+.052,config.timerButton[1]);board.add(timerBase);timerButtonMesh=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,.025,32),new THREE.MeshStandardMaterial({color:0xff3333}));timerButtonMesh.position.set(config.timerButton[0],FLOOR_Y+.095,config.timerButton[1]);board.add(timerButtonMesh);const phonePad=new THREE.Mesh(new THREE.BoxGeometry(config.phoneWidth*1.25,.014,config.phoneHeight*1.15),new THREE.MeshStandardMaterial({color:0x777}));phonePad.position.set(config.phonePosition[0],FLOOR_Y+.075,config.phonePosition[2]);board.add(phonePad)}
+function updateScreenTexture(){if(!screenCanvas){screenCanvas=document.createElement('canvas');screenCanvas.width=360;screenCanvas.height=600;screenTexture=new THREE.CanvasTexture(screenCanvas)}const c=screenCanvas.getContext('2d');c.fillStyle='#111';c.fillRect(0,0,360,600);c.font='bold 62px system-ui';c.textAlign='center';c.textBaseline='middle';for(let i=1;i<=6;i++){const col=(i-1)%2,row=Math.floor((i-1)/2);const x=90+col*180,y=100+row*200;c.fillStyle=covered.has(i)?'#333':'#dfefff';c.fillRect(x-62,y-62,124,124);c.fillStyle=covered.has(i)?'#777':'#111';c.fillText(String(i),x,y)}screenTexture.needsUpdate=true}
+function makePhone(){if(phone){if(phone.parent)phone.parent.remove(phone)}phone=new THREE.Group();const back=new THREE.Mesh(new THREE.BoxGeometry(config.phoneWidth,config.phoneThickness,config.phoneHeight),new THREE.MeshStandardMaterial({color:0x777,roughness:.35}));phone.add(back);updateScreenTexture();const screen=new THREE.Mesh(new THREE.PlaneGeometry(config.phoneWidth*.92,config.phoneHeight*.92),new THREE.MeshBasicMaterial({map:screenTexture}));screen.rotation.x=-Math.PI/2;screen.position.y=config.phoneThickness/2+.001;phone.add(screen);phone.rotation.y=face==='front'?0:Math.PI;phone.position.set(config.phonePosition[0],FLOOR_Y+config.phoneThickness/2+.08,config.phonePosition[2]);scene.add(phone)}
+function normalize(){if(normalized)return;const box=new THREE.Box3().setFromObject(root);const s=box.getSize(new THREE.Vector3());const m=Math.max(s.x,s.y,s.z);if(m>0){root.scale.setScalar(.75/m);contraRoot.scale.copy(root.scale);normalized=true}}
+async function loadModels(){try{const b=await loader.loadAsync('Body.glb'),j=await loader.loadAsync('LeftJaw.glb');root.add(b.scene);jawPivot.add(j.scene);const b2=b.scene.clone(true),j2=j.scene.clone(true);contraRoot.add(b2);contraJawPivot.add(j2);contraRoot.scale.x*=-1;[root,contraRoot].forEach(r=>r.traverse(o=>{if(o.isMesh)o.material=new THREE.MeshStandardMaterial({color:0x101010,roughness:.35,metalness:.4})}));normalize();makeBoard();makePhone();resetTask()}catch(e){console.error(e);showWarn('Body.glb と LeftJaw.glb をHTMLと同じフォルダに置いてください。')}}
+function applyRot(r=root,rot=config.gripperRot){r.rotation.set(-Math.PI/2+rot[0],rot[1],rot[2])}
+function graspWorld(r=root){const p=new THREE.Vector3(...config.graspLocal);r.localToWorld(p);return p}
+function rootTargetFor(world,r=root){return r.position.clone().add(world.clone().sub(graspWorld(r)))}
+function phoneCenter(){return new THREE.Vector3(config.phonePosition[0],FLOOR_Y+config.phoneThickness/2+.08,config.phonePosition[2])}
+function phoneGripTarget(){return phoneCenter().clone().add(new THREE.Vector3(config.phoneGripOffset[0],0,config.phoneGripOffset[1]))}
+function timerPoint(){return new THREE.Vector3(config.timerButton[0],FLOOR_Y+.13,config.timerButton[1])}
+function setJaw(v){targetAngle=v}function updateJaw(){angle+=(targetAngle-angle)*.08;jawPivot.rotation.z=angle}
+function moveRoot(to,ms,done){moving=true;const from=root.position.clone(),t0=performance.now();function f(){const t=Math.min(1,(performance.now()-t0)/ms),u=t*t*(3-2*t);root.position.lerpVectors(from,to,u);if(t<1)requestAnimationFrame(f);else{moving=false;done?.()}}f()}
+function moveRotate(toPos,toRot,ms,done){moving=true;const fp=root.position.clone(),fr=root.rotation.clone(),t0=performance.now();function f(){const t=Math.min(1,(performance.now()-t0)/ms),u=t*t*(3-2*t);root.position.lerpVectors(fp,toPos,u);root.rotation.set(fr.x+(toRot.x-fr.x)*u,fr.y+(toRot.y-fr.y)*u,fr.z+(toRot.z-fr.z)*u);if(t<1)requestAnimationFrame(f);else{moving=false;done?.()}}f()}
+function zeroPose(){root.position.set(...config.zeroSetBase);root.rotation.set(...config.zeroSetRot);setJaw(config.openAngle)}
+function resetTask(){state='ready';moving=false;timerRunning=false;startTime=0;currentTap=1;covered.clear();regraspCount=0;phoneAttached=false;wristGameActive=false;$('time').textContent='0.0';$('end').style.display='none';$('timerTaskBtn').classList.remove('running');$('startTaskBtn').classList.remove('done');makeBoard();makePhone();zeroPose();contraRoot.visible=false;setPhase('READY')}
+function showModal(msg,buttons=[],wristGame=false){$('message').textContent=msg;$('actions').innerHTML='';$('wristGame').style.display=wristGame?'block':'none';buttons.forEach(b=>{const x=document.createElement('button');x.textContent=b.label;x.onclick=b.onClick;$('actions').appendChild(x)});$('modal').style.display='flex'}function hideModal(){$('modal').style.display='none'}
+function chooseCoverage(isRegrasp=false){covered.clear();if(isRegrasp&&regraspCount>0&&Math.random()>config.screenCover.regraspProbability){updateScreenTexture();return}const r=Math.random();if(r<config.screenCover.coverTwoProbability){const row=Math.floor(Math.random()*3);covered.add(row*2+1);covered.add(row*2+2)}else if(r<config.screenCover.coverTwoProbability+config.screenCover.coverRightProbability){const rights=[2,4,6];covered.add(rights[Math.floor(Math.random()*3)])}updateScreenTexture()}
+function startMove(){if(moving||state!=='ready')return;const safe=new THREE.Vector3(root.position.x,root.position.y+config.transitClearance,root.position.z);moveRoot(safe,450,()=>moveRoot(rootTargetFor(timerPoint()),900,()=>{state='timer_start';setPhase('PRESS BUTTON');$('startTaskBtn').classList.add('done')}))}
+function timerButtonAction(){if(moving)return;if(state==='timer_start'){timerRunning=true;startTime=performance.now();$('timerTaskBtn').classList.add('running');state='to_phone';setPhase('TO PHONE');const lift=root.position.clone().add(new THREE.Vector3(0,config.transitClearance,0));moveRoot(lift,400,()=>{applyRot();const target=rootTargetFor(phoneGripTarget());moveRoot(target,1100,()=>{state='ready_grip';setPhase('GRIP PHONE')})})}else if(state==='timer_end'){timerRunning=false;const t=(performance.now()-startTime)/1000;$('finalTime').textContent=t.toFixed(1)+'s';$('end').style.display='flex';state='end';setPhase('END');$('timerTaskBtn').classList.remove('running')}}
+function startWristGame(){wristGameActive=true;showModal('電動リストを回します。Lを強く長く押し、適正範囲で離してください。',[],true);$('meterFill').style.width='0%'}
+function finishWristHold(ms){wristGameActive=false;hideModal();if(ms<config.electricWrist.holdMinMs){showModal('収縮が短く、リストは回転しませんでした。もう一度試してください。',[{label:'再試行',onClick:()=>{hideModal();startWristGame()}}]);return}if(ms>config.electricWrist.holdMaxMs||Math.random()<config.electricWrist.malfunctionProbability){const problems=['回転不足','回り過ぎ','逆方向への誤作動'];showModal('電動リストが誤作動しました：'+problems[Math.floor(Math.random()*problems.length)]+'。もう一度試してください。',[{label:'再試行',onClick:()=>{hideModal();startWristGame()}}]);return}phone.rotation.y=0;state='tap_prepare';beginTapping()}
+function onLDown(){if(wristGameActive){wristHoldStart=performance.now();const loop=()=>{if(!wristGameActive||!wristHoldStart)return;const ms=performance.now()-wristHoldStart;$('meterFill').style.width=Math.min(100,ms/config.electricWrist.holdMaxMs*100)+'%';requestAnimationFrame(loop)};loop();return}onL()}
+function onLUp(){if(wristGameActive&&wristHoldStart){const ms=performance.now()-wristHoldStart;wristHoldStart=0;finishWristHold(ms)}}
+function onL(){if(moving)return;if(state==='ready_grip'){setJaw(config.closedAngle);setTimeout(()=>{root.attach(phone);phoneAttached=true;chooseCoverage(false);if(face==='back'){if(arm!=='forearm'){showModal('この義手条件では、健側手で肘や手首を回さない限り、裏向きのケータイを画面側へ返せません。上腕義手・肩義手ではこの片手課題を続行できません。',[{label:'最初から',onClick:()=>{hideModal();resetTask()}}]);return}if(wrist==='fixed'){showModal('画面を上に向けるには回外が必要です。固定手首のグライファーでは、健側手で義手側の肘または手首を回さない限り続行できません。',[{label:'最初から',onClick:()=>{hideModal();resetTask()}}]);return}startWristGame();return}beginTapping()},500)}else if(state==='tapping'){timerRunning=false;showModal('対側手で画面を操作している途中にLを押したため、ケータイ保持が崩れました。最初からやり直します。',[{label:'最初から',onClick:()=>{hideModal();resetTask()}}])}else if(state==='at_place'){scene.attach(phone);phoneAttached=false;phone.position.copy(phoneCenter());setJaw(config.openAngle);state='to_timer_end';const up=root.position.clone().add(new THREE.Vector3(0,config.transitClearance,0));moveRoot(up,450,()=>moveRoot(rootTargetFor(timerPoint()),1000,()=>{state='timer_end';setPhase('PRESS BUTTON')}))}}
+function beginTapping(){state='tap_prepare';setPhase('TURN SCREEN');const p=root.position.clone();const r=new THREE.Euler(root.rotation.x,root.rotation.y,root.rotation.z+Math.PI/2);moveRotate(p,r,700,()=>{state='tapping';setPhase('TAP 1→6');contraRoot.visible=true;contraRoot.position.set(-.55,.35,.15);contraRoot.rotation.set(root.rotation.x,-root.rotation.y,-root.rotation.z);currentTap=1;tapNext()})}
+function tapNext(){if(state!=='tapping')return;if(currentTap>6){contraRoot.visible=false;moveToEar();return}if(covered.has(currentTap)){regraspCount++;showModal('番号 '+currentTap+' がグライファーで覆われ、押せません。いったん置いて持ち直します。タイマーは継続します。',[{label:'持ち直す',onClick:()=>{hideModal();regraspPhone()}}]);return}const col=(currentTap-1)%2,row=Math.floor((currentTap-1)/2);const local=new THREE.Vector3((col?1:-1)*config.phoneWidth*.23,config.phoneThickness/2+.08,(1-row)*config.phoneHeight*.28);phone.localToWorld(local);const target=rootTargetFor(local,contraRoot);moveRootGeneric(contraRoot,target,280,()=>{contraRoot.position.y-=.025;setTimeout(()=>{contraRoot.position.y+=.025;currentTap++;setTimeout(tapNext,160)},120)})}
+function moveRootGeneric(r,to,ms,done){const from=r.position.clone(),t0=performance.now();function f(){const t=Math.min(1,(performance.now()-t0)/ms),u=t*t*(3-2*t);r.position.lerpVectors(from,to,u);if(t<1)requestAnimationFrame(f);else done?.()}f()}
+function regraspPhone(){state='regrasp';scene.attach(phone);phoneAttached=false;const place=phoneCenter().clone();phone.position.copy(place);setJaw(config.openAngle);const p=root.position.clone().add(new THREE.Vector3(0,config.transitClearance,0));moveRoot(p,500,()=>{applyRot();moveRoot(rootTargetFor(phoneGripTarget()),900,()=>{setJaw(config.closedAngle);setTimeout(()=>{root.attach(phone);phoneAttached=true;chooseCoverage(true);state='tapping';tapNext()},450)})})}
+function moveToEar(){state='to_ear';setPhase('TO EAR');const lift=root.position.clone().add(new THREE.Vector3(0,config.liftHeight,0));moveRoot(lift,650,()=>moveRoot(rootTargetFor(new THREE.Vector3(...config.earPosition)),1300,()=>{state='at_ear';setPhase('EAR');setTimeout(moveBackToPlace,900)}))}
+function moveBackToPlace(){state='return_phone';setPhase('RETURN');const above=phoneCenter().clone().add(new THREE.Vector3(0,config.liftHeight,0));moveRoot(rootTargetFor(above),1300,()=>moveRoot(rootTargetFor(phoneGripTarget()),650,()=>{state='at_place';setPhase('PLACE WITH L')}))}
+function setCalibration(s){calState=s;document.querySelectorAll('#calibBox button').forEach(b=>b.classList.toggle('on',b.dataset.cal===s));makeBoard();makePhone();applyRot();if(s==='ZERO')zeroPose();else if(s==='TIMER'){root.position.copy(rootTargetFor(timerPoint()))}else if(s==='PHONE'||s==='HOLD'){root.position.copy(rootTargetFor(phoneGripTarget()));setJaw(s==='HOLD'?config.closedAngle:config.openAngle)}else if(s==='TAP'){root.position.copy(rootTargetFor(phoneGripTarget()));phone.rotation.y=0;contraRoot.visible=true}else if(s==='EAR'){root.position.copy(rootTargetFor(new THREE.Vector3(...config.earPosition)))}else if(s==='PLACE'){root.position.copy(rootTargetFor(phoneGripTarget()));}}
+function toggleCalibration(){calibration=!calibration;$('calibBox').style.display=calibration?'block':'none';$('setStatus').textContent=calibration?'SET '+calState:'SET OFF';if(calibration)setCalibration(calState)}
+$('faceFront').onclick=()=>{face='front';modeUI();resetTask()};$('faceBack').onclick=()=>{face='back';modeUI();resetTask()};$('armForearm').onclick=()=>{arm='forearm';modeUI();resetTask()};$('armUpper').onclick=()=>{arm='upper';modeUI();resetTask()};$('armShoulder').onclick=()=>{arm='shoulder';modeUI();resetTask()};$('wristFixed').onclick=()=>{wrist='fixed';modeUI();resetTask()};$('wristElectric').onclick=()=>{wrist='electric';modeUI();resetTask()};$('resetBtn').onclick=resetTask;$('setBtn').onclick=toggleCalibration;document.querySelectorAll('#calibBox button').forEach(b=>b.onclick=()=>setCalibration(b.dataset.cal));$('startTaskBtn').onclick=startMove;$('timerTaskBtn').onclick=timerButtonAction;$('lBtn').addEventListener('pointerdown',onLDown);$('lBtn').addEventListener('pointerup',onLUp);addEventListener('keydown',e=>{if((e.key==='l'||e.key==='L')&&!e.repeat)onLDown()});addEventListener('keyup',e=>{if(e.key==='l'||e.key==='L')onLUp()});$('restartBtn').onclick=resetTask;
+const ids=['phoneW','phoneH','phoneT','phoneX','phoneY','phoneZ','gx','gy','gz','gripX','gripZ','rx','ry','rz','openA','closedA','zeroX','zeroY','zeroZ','earX','earY','earZ','holdMin','holdMax','malProb','coverRight','coverTwo','regraspProb'];
+const map={phoneW:['phoneWidth'],phoneH:['phoneHeight'],phoneT:['phoneThickness'],phoneX:['phonePosition',0],phoneY:['phonePosition',1],phoneZ:['phonePosition',2],gx:['graspLocal',0],gy:['graspLocal',1],gz:['graspLocal',2],gripX:['phoneGripOffset',0],gripZ:['phoneGripOffset',1],rx:['gripperRot',0],ry:['gripperRot',1],rz:['gripperRot',2],openA:['openAngle'],closedA:['closedAngle'],zeroX:['zeroSetBase',0],zeroY:['zeroSetBase',1],zeroZ:['zeroSetBase',2],earX:['earPosition',0],earY:['earPosition',1],earZ:['earPosition',2],holdMin:['electricWrist','holdMinMs'],holdMax:['electricWrist','holdMaxMs'],malProb:['electricWrist','malfunctionProbability'],coverRight:['screenCover','coverRightProbability'],coverTwo:['screenCover','coverTwoProbability'],regraspProb:['screenCover','regraspProbability']};
+function get(path,obj=config){let x=obj;for(const k of path)x=x[k];return x}function set(path,v){let x=config;for(let i=0;i<path.length-1;i++)x=x[path[i]];x[path.at(-1)]=v}
+function wrap(){ids.forEach(id=>{const e=$(id),w=document.createElement('span');w.className='rangeWrap';e.parentNode.insertBefore(w,e);w.appendChild(e);const d=document.createElement('span');d.className='initialDot';d.id=id+'Dot';w.appendChild(d)})}
+function markers(){ids.forEach(id=>{const e=$(id),d=$(id+'Dot'),v=get(map[id],DEFAULT_CONFIG),mn=+e.min,mx=+e.max;d.style.left=Math.max(0,Math.min(100,(v-mn)/(mx-mn)*100))+'%'})}
+function sync(){ids.forEach(id=>{const v=get(map[id]);$(id).value=v;$(id+'v').textContent=(id==='holdMin'||id==='holdMax')?Math.round(v):Number(v).toFixed(3)});$('coords').textContent='const CONFIG = '+JSON.stringify(config,null,2)+';'}
+wrap();markers();sync();ids.forEach(id=>$(id).addEventListener('input',e=>{set(map[id],+e.target.value);sync();if(calibration)setCalibration(calState);else resetTask()}));$('saveAll').onclick=()=>{localStorage.setItem(STORAGE_KEY,JSON.stringify(config));alert('保存しました')};$('resetAll').onclick=()=>{config=clone(DEFAULT_CONFIG);localStorage.removeItem(STORAGE_KEY);sync();resetTask()};$('copyAll').onclick=async()=>{await navigator.clipboard.writeText('const CONFIG = '+JSON.stringify(config,null,2)+';');alert('コピーしました')};$('panelToggle').onclick=()=>{$('panel').classList.toggle('collapsed');$('panelToggle').textContent=$('panel').classList.contains('collapsed')?'調':'閉じる'};
+function animate(){requestAnimationFrame(animate);controls.update();updateJaw();if(timerRunning)$('time').textContent=((performance.now()-startTime)/1000).toFixed(1);renderer.render(scene,camera)}animate();addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});modeUI();loadModels();
+</script>
+</body></html>
